@@ -17,8 +17,23 @@ const SearchPage=()=> {
     const [fromDate, setFromDate] = useState(new Date());
     const [toDate, setToDate] = useState(new Date());
     const [mode, setMode] = useState('date');
+    const [msg,setMsg]=useState("");
+    const [pageToken,setPageToken]=useState("");
    
-   
+    const Item = ({item}) => (
+        <TouchableOpacity onPress={()=>openUrlHandler(item.id.videoId)} key={item.id.videoId}>
+        <View style={styles.item}  >
+<ImagePage imgUrl={item.snippet.thumbnails.medium.url}/>
+<Text style={styles.video_title} >{item.snippet.title}</Text>
+</View>
+</TouchableOpacity>
+      );
+      const loadMoreResults = async info => {
+        let response=await axios.get(`http://localhost:3000/loadmore?pageToken=${pageToken}&vrl=${videoUrl}&year=${year}&fromdate=${fromDate}&todate=${toDate}`);
+        console.log(response.data.videos);
+        setPageToken(response.data.pageToken);
+            setResult([...result,...response.data.videos]);
+    }
   
     const onFromDateChange = (event, selectedDate) => {
         console.log(selectedDate);
@@ -39,7 +54,14 @@ const SearchPage=()=> {
     }
     const searchHandler=async()=>{
             let response=await axios.get(`http://localhost:3000/search?vrl=${videoUrl}&year=${year}&fromdate=${fromDate}&todate=${toDate}`);
-          
+          if(response.data.videos.length===0)
+          {
+            setMsg("No data found");
+          }
+          else{
+            setMsg("");
+          }
+          setPageToken(response.data.pageToken);
             setResult(response.data.videos);
     }
   return (
@@ -84,22 +106,19 @@ const SearchPage=()=> {
       </View>
 
       </View>
+      {msg && <View><Text>{msg}</Text></View>}
       {result.length!==0 &&       
-      <ScrollView style={styles.scrollView}>
-               {
-                  result.map((item, index) => {
-                  
-                    return(
-                    <TouchableOpacity onPress={()=>openUrlHandler(item.id.videoId)} key={item.id.videoId}>
-                            <View style={styles.item}  >
-                    <ImagePage imgUrl={item.snippet.thumbnails.medium.url}/>
-                  <Text style={styles.video_title} >{item.snippet.title}</Text>
-                </View>
-                    </TouchableOpacity>
-                    
-                  )})
-               }
-            </ScrollView>
+     
+
+<FlatList
+data={result}
+renderItem={Item}
+keyExtractor={item => item.id.videoId}
+onEndReachedThreshold={0.01}
+onEndReached={info => {
+  loadMoreResults(info);
+}}
+/>
         
        
      
@@ -176,7 +195,7 @@ const styles = StyleSheet.create({
     maxHeight:600
  },
  datepick:{
-    backgroundColor:"#eee",
+    backgroundColor:"#dedede",
     border:2,
     borderRadius:4,
  },
